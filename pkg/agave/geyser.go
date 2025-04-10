@@ -1,6 +1,7 @@
 package agave
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -10,26 +11,26 @@ import (
 // on the host machine.
 
 type GeyserPlugin struct {
-	// All these options are mutally exclusive
 	YellowstoneGrpcConfig *YellowstoneGrpcConfig `pulumi:"yellowstoneGrpcConfig,optional"`
 	GenericPluginConfig   *string                `pulumi:"genericPluginConfig,optional"`
 }
 
-func (g *GeyserPlugin) Check() error {
-	if g.YellowstoneGrpcConfig != nil && g.GenericPluginConfig != nil {
-		return fmt.Errorf("only one of YellowstoneGrpcConfig or GenericPluginConfig can be specified")
+func (g *GeyserPlugin) ToConfigString() string {
+	if g.YellowstoneGrpcConfig != nil {
+		// Convert YellowstoneGrpcConfig to pretty-printed JSON string
+		configBytes, err := json.MarshalIndent(g.YellowstoneGrpcConfig, "", "  ")
+		if err != nil {
+			return ""
+		}
+		return string(configBytes)
 	}
 
-	if g.YellowstoneGrpcConfig == nil && g.GenericPluginConfig == nil {
-		return fmt.Errorf("either YellowstoneGrpcConfig or GenericPluginConfig must be specified")
+	// Return generic config string as-is
+	if g.GenericPluginConfig != nil {
+		return *g.GenericPluginConfig
 	}
 
-	return nil
-}
-
-type GeyserPlugin struct {
-	YellowstoneGrpcConfig *YellowstoneGrpcConfig `pulumi:"yellowstoneGrpcConfig,optional"`
-	GenericPluginConfig   *string                `pulumi:"genericPluginConfig,optional"`
+	return ""
 }
 
 func (g *GeyserPlugin) Check() error {

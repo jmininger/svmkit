@@ -74,6 +74,13 @@ func (cmd *InstallCommand) Check() error {
 		}
 	}
 
+	if g := cmd.GeyserPlugin; g != nil {
+		if err := g.Check(); err != nil {
+			return fmt.Errorf("warning: invalid geyser plugin config: %v", err)
+		}
+
+	}
+
 	cmd.SetConfigDefaults()
 
 	packageInfo, err := GeneratePackageInfo(cmd.Variant, cmd.Version)
@@ -99,6 +106,17 @@ func (cmd *InstallCommand) Env() *runner.EnvBuilder {
 	}
 
 	b := runner.NewEnvBuilder()
+
+	// Add plugin flag that points to config file that get's created by the runner
+	if g := cmd.GeyserPlugin; g != nil {
+		if cmd.Flags.GeyserPluginConfig == nil {
+			pluginConfig := []string{"geyser-config.json"}
+			cmd.Flags.GeyserPluginConfig = &pluginConfig
+		} else {
+			pluginConfig := append(*cmd.Flags.GeyserPluginConfig, "geyser-config.json")
+			cmd.Flags.GeyserPluginConfig = &pluginConfig
+		}
+	}
 
 	b.SetMap(map[string]string{
 		"VALIDATOR_FLAGS": strings.Join(cmd.Flags.Args(), " "),
@@ -167,6 +185,10 @@ func (cmd *InstallCommand) AddToPayload(p *runner.Payload) error {
 
 	p.AddString("validator-keypair.json", cmd.KeyPairs.Identity)
 	p.AddString("vote-account-keypair.json", cmd.KeyPairs.VoteAccount)
+
+	if plugin := cmd.GeyserPlugin; plugin != nil {
+		p.AddString("geyser-config.json", plugin.ToConfigString())
+	}
 
 	return nil
 }
