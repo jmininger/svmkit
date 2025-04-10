@@ -173,7 +173,6 @@ func (cmd *InstallCommand) AddToPayload(p *runner.Payload) error {
 
 type Agave struct {
 	runner.RunnerCommand
-
 	Environment    *solana.Environment   `pulumi:"environment,optional"`
 	Version        *string               `pulumi:"version,optional"`
 	Variant        *Variant              `pulumi:"variant,optional"`
@@ -184,6 +183,7 @@ type Agave struct {
 	TimeoutConfig  *TimeoutConfig        `pulumi:"timeoutConfig,optional"`
 	StartupPolicy  *StartupPolicy        `pulumi:"startupPolicy,optional"`
 	ShutdownPolicy *ShutdownPolicy       `pulumi:"shutdownPolicy,optional"`
+	GeyserPlugin   *GeyserPlugin         `pulumi:"geyserPlugin,optional"`
 }
 
 func (agave *Agave) Install() runner.Command {
