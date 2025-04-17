@@ -110,10 +110,10 @@ func (cmd *InstallCommand) Env() *runner.EnvBuilder {
 	// Add plugin flag that points to config file that get's created by the runner
 	if g := cmd.GeyserPlugin; g != nil {
 		if cmd.Flags.GeyserPluginConfig == nil {
-			pluginConfig := []string{"geyser-config.json"}
+			pluginConfig := []string{"/home/sol/geyser-config.json"}
 			cmd.Flags.GeyserPluginConfig = &pluginConfig
 		} else {
-			pluginConfig := append(*cmd.Flags.GeyserPluginConfig, "geyser-config.json")
+			pluginConfig := append(*cmd.Flags.GeyserPluginConfig, "/home/sol/geyser-config.json")
 			cmd.Flags.GeyserPluginConfig = &pluginConfig
 		}
 	}
