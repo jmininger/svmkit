@@ -78,12 +78,12 @@ type GrpcConfigGrpc struct {
 	FilterNameSizeLimit           int                       `json:"filter_name_size_limit" pulumi:"filterNameSizeLimit"`
 	FilterNamesSizeLimit          int                       `json:"filter_names_size_limit" pulumi:"filterNamesSizeLimit"`
 	FilterNamesCleanupInterval    string                    `json:"filter_names_cleanup_interval" pulumi:"filterNamesCleanupInterval"`
-	ReplayStoredSlots             uint64                    `json:"replay_stored_slots" pulumi:"replayStoredSlots"`
+	ReplayStoredSlots             int64                     `json:"replay_stored_slots" pulumi:"replayStoredSlots"`
 	ServerHttp2AdaptiveWindow     *bool                     `json:"server_http2_adaptive_window,omitempty" pulumi:"serverHttp2AdaptiveWindow,optional"`
 	ServerHttp2KeepaliveInterval  *string                   `json:"server_http2_keepalive_interval,omitempty" pulumi:"serverHttp2KeepaliveInterval,optional"`
 	ServerHttp2KeepaliveTimeout   *string                   `json:"server_http2_keepalive_timeout,omitempty" pulumi:"serverHttp2KeepaliveTimeout,optional"`
-	ServerInitialConnWindowSize   *uint32                   `json:"server_initial_connection_window_size,omitempty" pulumi:"serverInitialConnectionWindowSize,optional"`
-	ServerInitialStreamWindowSize *uint32                   `json:"server_initial_stream_window_size,omitempty" pulumi:"serverInitialStreamWindowSize,optional"`
+	ServerInitialConnWindowSize   *int32                    `json:"server_initial_connection_window_size,omitempty" pulumi:"serverInitialConnectionWindowSize,optional"`
+	ServerInitialStreamWindowSize *int32                    `json:"server_initial_stream_window_size,omitempty" pulumi:"serverInitialStreamWindowSize,optional"`
 }
 
 type GrpcConfigGrpcServerTls struct {
