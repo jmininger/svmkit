@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	rootCmd = &cobra.Command{
+	rootCmd = &cobra.Command {
 		Use:   "svmkit",
 		Short: "A CLI for interacting with svmkit",
 		Long:  `svmkit is a wrapper around the library of the same name.`,
