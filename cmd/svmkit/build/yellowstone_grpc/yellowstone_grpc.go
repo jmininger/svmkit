@@ -10,7 +10,7 @@ import (
 	"github.com/abklabs/svmkit/pkg/runner/deb"
 	"github.com/abklabs/svmkit/pkg/runner/deployer"
 
-	"github.com/abklabs/svmkit/cmd/svmkit/build/fd/assets"
+	"github.com/abklabs/svmkit/cmd/svmkit/build/yellowstone_grpc/assets"
 )
 
 type Build struct {
@@ -24,6 +24,11 @@ func (cmd *Build) Env() *runner.EnvBuilder {
 	env := runner.NewEnvBuilder()
 
 	env.Set("BUILD_DIR", cmd.BuildDir)
+  // VERSION
+  env.Set("ASSET_NAME","yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2")
+  env.Set("PACKAGE_NAME", "yellowstone-grpc")
+  // env.Set("PACKAGE_PREFIX", "")
+  env.Set("MAINTAINER", "ABKLabs")
 
 	return env
 }
@@ -123,4 +128,3 @@ func init() {
 	flags := YellowstoneGRPCCmd.Flags()
 	flags.Bool("keep-payload", false, "don't remove build scripts after completion")
 }
-

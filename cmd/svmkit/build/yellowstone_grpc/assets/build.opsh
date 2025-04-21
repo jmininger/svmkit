@@ -1,7 +1,6 @@
 # shellcheck disable=SC2164,SC1091 shell=bash
 
 lib::import git
-lib::import log
 
 # metadata template
 generate_metadata() {
@@ -18,57 +17,65 @@ EOF
 }
 
 step::00::check-environment() {
-    cd "$BUILD_DIR"
+    log::info "Checking for clean git working tree..."
+    pushd "$BUILD_DIR"
     git::repo::is-clean || log::fatal "Working tree must be clean"
+    popd
 }
 
 step::10::download-release() {
-# const geyserVersion = "v6.0.0+solana.2.2.1";
-    local ASSET_NAME="yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2"
     log::info "Downloading release $VERSION from GitHub"
+    pushd "$BUILD_DIR"
     mkdir -p release
-    curl -sL "https://github.com/rpcpool/yellowstone-grpc/releases/download/$version/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2" \
-    # curl -sL "https://github.com/rpcpool/yellowstone-grpc/releases/download/$VERSION/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2" \
-        -o release/$ASSET_NAME || log::fatal "Failed to download asset"
-
+    curl -sL \
+        "https://github.com/rpcpool/yellowstone-grpc/releases/download/$VERSION/$ASSET_NAME" \
+        -o "release/$ASSET_NAME" \
+        || log::fatal "Failed to download asset $ASSET_NAME"
+    popd
 }
 
 step::20::extract-so() {
-    log::info "Extracting .so file"
-    # assume asset is a tarball (.tar.gz) containing lib/*.so
-    tar -xzf release/$ASSET_NAME -C release
-    so_files=(release/*.so)
-    [[ -n "${so_files[*]}" ]] || log::fatal "No .so files found"
+    log::info "Extracting shared library from $ASSET_NAME"
+    pushd "$BUILD_DIR"
+    tar -xjf "release/$ASSET_NAME" -C release
+
+    # detect extracted directory and find .so
+    local extracted_dir so_file
+    extracted_dir=$(find release -maxdepth 1 -type d ! -path release | head -n1)
+    [[ -d $extracted_dir ]] || log::fatal "No extracted directory found under release/"
+    so_file=$(find "$extracted_dir" -type f -name '*.so' | head -n1)
+    [[ -f $so_file ]] || log::fatal "No .so file found in $extracted_dir"
+    log::info "Found library: $so_file"
+    export SO_FILE="$so_file"
+    popd
 }
 
 step::30::assemble-deb-tree() {
     log::info "Assembling Debian package tree"
-    PKG=$OUTPUT_DIR/$PACKAGE_NAME
-    deb_dir=$PKG/DEBIAN
+    pushd "$BUILD_DIR"
+    local pkg deb_dir lib_dir
+    pkg=$PACKAGE_NAME
+    deb_dir=$pkg/DEBIAN
     mkdir -p "$deb_dir"
 
     # control file
     generate_metadata "$PACKAGE_NAME" "$VERSION" "$MAINTAINER" > "$deb_dir/control"
 
-    # library directory
-    lib_dir=$PKG/usr/lib/$PACKAGE_PREFIX
+    # copy library into usr/lib
+    lib_dir=$pkg/usr/lib
     mkdir -p "$lib_dir"
-    cp release/*.so "$lib_dir/"
+    cp "$SO_FILE" "$lib_dir/" || log::fatal "Failed to copy $SO_FILE into $lib_dir"
+    popd
 }
 
 step::40::build-deb() {
-    log::info "Building .deb"
-    dpkg-deb --build "$OUTPUT_DIR/$PACKAGE_NAME"
-    mv "$OUTPUT_DIR/$PACKAGE_NAME.deb" .
+    log::info "Building .deb package"
+    pushd "$BUILD_DIR"
+    local outdir
+    outdir="${OUTPUT_DIR:-.}"
+    mkdir -p "$outdir"
+    dpkg-deb --build "$PACKAGE_NAME" "$outdir/$PACKAGE_NAME.deb" \
+        || log::fatal "dpkg-deb failed for $PACKAGE_NAME"
+    popd
 }
 
-main() {
-    # required env vars: BUILD_DIR, VERSION, ASSET_NAME, PACKAGE_NAME, PACKAGE_PREFIX, MAINTAINER, OUTPUT_DIR
-    step::00::check-environment
-    step::10::download-release
-    step::20::extract-so
-    step::30::assemble-deb-tree
-    step::40::build-deb
-}
-
-main
