@@ -1,74 +1,35 @@
 # shellcheck disable=SC2164,SC1091 shell=bash
 
 lib::import git
-lib::import log
-
-# metadata template
-generate_metadata() {
-    local name=$1 version=$2 maintainer=$3
-    cat <<EOF
-Package: $name
-Version: $version
-Section: libs
-Priority: optional
-Architecture: amd64
-Maintainer: $maintainer
-Description: Yellowstone gRPC client library
-EOF
-}
 
 step::00::check-environment() {
-    cd "$BUILD_DIR"
+    log::info "Checking for clean git working tree..."
+    pushd "$BUILD_DIR"
     git::repo::is-clean || log::fatal "Working tree must be clean"
+    popd
 }
 
-step::10::download-release() {
-# const geyserVersion = "v6.0.0+solana.2.2.1";
-    local ASSET_NAME="yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2"
-    log::info "Downloading release $VERSION from GitHub"
-    mkdir -p release
-    curl -sL "https://github.com/rpcpool/yellowstone-grpc/releases/download/$version/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2" \
-    # curl -sL "https://github.com/rpcpool/yellowstone-grpc/releases/download/$VERSION/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2" \
-        -o release/$ASSET_NAME || log::fatal "Failed to download asset"
+step::10::build-plugin() {
+    pushd "$BUILD_DIR"
+    cat <<EOF >>yellowstone-grpc-geyser/Cargo.toml
+[package.metadata.deb]
+name = "${PACKAGE_NAME}"
+maintainer = "${MAINTAINER}"
+provides = "svmkit-yellowstone-grpc"
+conflicts = "svmkit-yellowstone-grpc"
+replaces = "svmkit-yellowstone-grpc"
+EOF
 
+    (
+        IFS=$'\r\n '
+        set +u
+        source ci/rust-version.sh stable
+        env | grep rust_
+        if ! $NO_BUILD; then
+            # shellcheck disable=SC2154
+            cargo +"$rust_stable" deb -p "yellowstone-grpc-geyser"
+        fi
+    )
+
+    popd
 }
-
-step::20::extract-so() {
-    log::info "Extracting .so file"
-    # assume asset is a tarball (.tar.gz) containing lib/*.so
-    tar -xzf release/$ASSET_NAME -C release
-    so_files=(release/*.so)
-    [[ -n "${so_files[*]}" ]] || log::fatal "No .so files found"
-}
-
-step::30::assemble-deb-tree() {
-    log::info "Assembling Debian package tree"
-    PKG=$OUTPUT_DIR/$PACKAGE_NAME
-    deb_dir=$PKG/DEBIAN
-    mkdir -p "$deb_dir"
-
-    # control file
-    generate_metadata "$PACKAGE_NAME" "$VERSION" "$MAINTAINER" > "$deb_dir/control"
-
-    # library directory
-    lib_dir=$PKG/usr/lib/$PACKAGE_PREFIX
-    mkdir -p "$lib_dir"
-    cp release/*.so "$lib_dir/"
-}
-
-step::40::build-deb() {
-    log::info "Building .deb"
-    dpkg-deb --build "$OUTPUT_DIR/$PACKAGE_NAME"
-    mv "$OUTPUT_DIR/$PACKAGE_NAME.deb" .
-}
-
-main() {
-    # required env vars: BUILD_DIR, VERSION, ASSET_NAME, PACKAGE_NAME, PACKAGE_PREFIX, MAINTAINER, OUTPUT_DIR
-    step::00::check-environment
-    step::10::download-release
-    step::20::extract-so
-    step::30::assemble-deb-tree
-    step::40::build-deb
-}
-
-main

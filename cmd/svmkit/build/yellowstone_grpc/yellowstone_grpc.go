@@ -10,20 +10,27 @@ import (
 	"github.com/abklabs/svmkit/pkg/runner/deb"
 	"github.com/abklabs/svmkit/pkg/runner/deployer"
 
-	"github.com/abklabs/svmkit/cmd/svmkit/build/fd/assets"
+	"github.com/abklabs/svmkit/cmd/svmkit/build/yellowstone_grpc/assets"
 )
 
 type Build struct {
 	runner.RunnerCommand
-
 	BuildDir    string
 	KeepPayload bool
+	// Version     string
+	PackageName string
+	Maintainer  string
+	NoBuild    bool
 }
 
 func (cmd *Build) Env() *runner.EnvBuilder {
 	env := runner.NewEnvBuilder()
 
+	// VERSION
 	env.Set("BUILD_DIR", cmd.BuildDir)
+	env.Set("PACKAGE_NAME", cmd.PackageName)
+	env.Set("MAINTAINER", cmd.Maintainer)
+	env.SetBool("NO_BUILD", cmd.NoBuild)
 
 	return env
 }
@@ -74,9 +81,31 @@ var YellowstoneGRPCCmd = &cobra.Command{
 			return err
 		}
 
+		maintainer, err := flags.GetString("maintainer")
+
+		if err != nil {
+			return err
+		}
+
+		packageName, err := flags.GetString("package-name")
+
+		if err != nil {
+			return err
+		}
+
+		noBuild, err := flags.GetBool("no-build")
+
+		if err != nil {
+			return err
+		}
+
+
 		runnerCommand := &Build{
 			BuildDir:    cwd,
 			KeepPayload: keepPayload,
+			PackageName: packageName,
+			Maintainer:  maintainer,
+			NoBuild:   noBuild,
 		}
 
 		if err = runnerCommand.Check(); err != nil {
@@ -121,6 +150,9 @@ var YellowstoneGRPCCmd = &cobra.Command{
 
 func init() {
 	flags := YellowstoneGRPCCmd.Flags()
-	flags.Bool("keep-payload", false, "don't remove build scripts after completion")
-}
 
+	flags.String("maintainer", "Engineering <engineering@abklabs.com>", "name and email of the maintainer of the package")
+	flags.String("package-name", "yellowstone-grpc", "name of the package")
+	flags.Bool("keep-payload", false, "don't remove build scripts after completion")
+	flags.Bool("no-build", false, "configure the repository, but do not build")
+}
