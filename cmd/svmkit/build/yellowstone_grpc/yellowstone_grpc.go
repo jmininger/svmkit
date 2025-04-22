@@ -15,20 +15,20 @@ import (
 
 type Build struct {
 	runner.RunnerCommand
-
 	BuildDir    string
 	KeepPayload bool
+	Version     string
+	PackageName string
+	Maintainer  string
 }
 
 func (cmd *Build) Env() *runner.EnvBuilder {
 	env := runner.NewEnvBuilder()
 
+	// VERSION
 	env.Set("BUILD_DIR", cmd.BuildDir)
-  // VERSION
-  env.Set("ASSET_NAME","yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2")
-  env.Set("PACKAGE_NAME", "yellowstone-grpc")
-  // env.Set("PACKAGE_PREFIX", "")
-  env.Set("MAINTAINER", "ABKLabs")
+	env.Set("PACKAGE_NAME", cmd.PackageName)
+	env.Set("MAINTAINER", cmd.Maintainer)
 
 	return env
 }
@@ -126,5 +126,8 @@ var YellowstoneGRPCCmd = &cobra.Command{
 
 func init() {
 	flags := YellowstoneGRPCCmd.Flags()
+
+	flags.String("maintainer", "Engineering <engineering@abklabs.com>", "name and email of the maintainer of the package")
+	flags.String("package-name", "yellowstone-grpc", "name of the package")
 	flags.Bool("keep-payload", false, "don't remove build scripts after completion")
 }

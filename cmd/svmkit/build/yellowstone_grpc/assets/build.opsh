@@ -2,20 +2,6 @@
 
 lib::import git
 
-# metadata template
-generate_metadata() {
-    local name=$1 version=$2 maintainer=$3
-    cat <<EOF
-Package: $name
-Version: $version
-Section: libs
-Priority: optional
-Architecture: amd64
-Maintainer: $maintainer
-Description: Yellowstone gRPC client library
-EOF
-}
-
 step::00::check-environment() {
     log::info "Checking for clean git working tree..."
     pushd "$BUILD_DIR"
@@ -23,59 +9,27 @@ step::00::check-environment() {
     popd
 }
 
-step::10::download-release() {
-    log::info "Downloading release $VERSION from GitHub"
+step::10::build-plugin() {
     pushd "$BUILD_DIR"
-    mkdir -p release
-    curl -sL \
-        "https://github.com/rpcpool/yellowstone-grpc/releases/download/$VERSION/$ASSET_NAME" \
-        -o "release/$ASSET_NAME" \
-        || log::fatal "Failed to download asset $ASSET_NAME"
+    cat <<EOF >>yellowstone-grpc-geyser/Cargo.toml
+[package.metadata.deb]
+name = "${PACKAGE_NAME}"
+maintainer = "${MAINTAINER}"
+provides = "svmkit-yellowstone-grpc"
+conflicts = "svmkit-yellowstone-grpc"
+replaces = "svmkit-yellowstone-grpc"
+EOF
+
+    (
+        IFS=$'\r\n '
+        set +u
+        source ci/rust-version.sh stable
+        env | grep rust_
+        if ! $NO_BUILD; then
+            # shellcheck disable=SC2154
+            cargo +"$rust_stable" deb -p "yellowstone-grpc-geyser"
+        fi
+    )
+
     popd
 }
-
-step::20::extract-so() {
-    log::info "Extracting shared library from $ASSET_NAME"
-    pushd "$BUILD_DIR"
-    tar -xjf "release/$ASSET_NAME" -C release
-
-    # detect extracted directory and find .so
-    local extracted_dir so_file
-    extracted_dir=$(find release -maxdepth 1 -type d ! -path release | head -n1)
-    [[ -d $extracted_dir ]] || log::fatal "No extracted directory found under release/"
-    so_file=$(find "$extracted_dir" -type f -name '*.so' | head -n1)
-    [[ -f $so_file ]] || log::fatal "No .so file found in $extracted_dir"
-    log::info "Found library: $so_file"
-    export SO_FILE="$so_file"
-    popd
-}
-
-step::30::assemble-deb-tree() {
-    log::info "Assembling Debian package tree"
-    pushd "$BUILD_DIR"
-    local pkg deb_dir lib_dir
-    pkg=$PACKAGE_NAME
-    deb_dir=$pkg/DEBIAN
-    mkdir -p "$deb_dir"
-
-    # control file
-    generate_metadata "$PACKAGE_NAME" "$VERSION" "$MAINTAINER" > "$deb_dir/control"
-
-    # copy library into usr/lib
-    lib_dir=$pkg/usr/lib
-    mkdir -p "$lib_dir"
-    cp "$SO_FILE" "$lib_dir/" || log::fatal "Failed to copy $SO_FILE into $lib_dir"
-    popd
-}
-
-step::40::build-deb() {
-    log::info "Building .deb package"
-    pushd "$BUILD_DIR"
-    local outdir
-    outdir="${OUTPUT_DIR:-.}"
-    mkdir -p "$outdir"
-    dpkg-deb --build "$PACKAGE_NAME" "$outdir/$PACKAGE_NAME.deb" \
-        || log::fatal "dpkg-deb failed for $PACKAGE_NAME"
-    popd
-}
-
