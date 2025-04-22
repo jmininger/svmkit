@@ -79,9 +79,23 @@ var YellowstoneGRPCCmd = &cobra.Command{
 			return err
 		}
 
+		maintainer, err := flags.GetString("maintainer")
+
+		if err != nil {
+			return err
+		}
+
+		packageName, err := flags.GetString("package-name")
+
+		if err != nil {
+			return err
+		}
+
 		runnerCommand := &Build{
 			BuildDir:    cwd,
 			KeepPayload: keepPayload,
+			PackageName: packageName,
+			Maintainer:  maintainer,
 		}
 
 		if err = runnerCommand.Check(); err != nil {
