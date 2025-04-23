@@ -17,20 +17,20 @@ type Build struct {
 	runner.RunnerCommand
 	BuildDir    string
 	KeepPayload bool
-	// Version     string
 	PackageName string
 	Maintainer  string
-	NoBuild    bool
+	NoBuild     bool
+	AgavePath   string
 }
 
 func (cmd *Build) Env() *runner.EnvBuilder {
 	env := runner.NewEnvBuilder()
 
-	// VERSION
 	env.Set("BUILD_DIR", cmd.BuildDir)
 	env.Set("PACKAGE_NAME", cmd.PackageName)
 	env.Set("MAINTAINER", cmd.Maintainer)
 	env.SetBool("NO_BUILD", cmd.NoBuild)
+	env.Set("AGAVE_PATH", cmd.AgavePath)
 
 	return env
 }
@@ -99,13 +99,19 @@ var YellowstoneGRPCCmd = &cobra.Command{
 			return err
 		}
 
+		agavePath, err := flags.GetString("agave-path")
+
+		if err != nil {
+			return err
+		}
 
 		runnerCommand := &Build{
 			BuildDir:    cwd,
 			KeepPayload: keepPayload,
 			PackageName: packageName,
 			Maintainer:  maintainer,
-			NoBuild:   noBuild,
+			NoBuild:     noBuild,
+			AgavePath:   agavePath,
 		}
 
 		if err = runnerCommand.Check(); err != nil {
@@ -155,4 +161,6 @@ func init() {
 	flags.String("package-name", "yellowstone-grpc", "name of the package")
 	flags.Bool("keep-payload", false, "don't remove build scripts after completion")
 	flags.Bool("no-build", false, "configure the repository, but do not build")
+	flags.String("agave-path", "", "path to local agave repo (required)")
+	_ = YellowstoneGRPCCmd.MarkFlagRequired("agave-path")
 }

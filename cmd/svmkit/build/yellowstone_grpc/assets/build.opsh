@@ -2,10 +2,34 @@
 
 lib::import git
 
+env_check_plugin_version() {
+    local dir="$1"
+    cargo metadata --format-version 1 \
+        --manifest-path "$BUILD_DIR/$dir/Cargo.toml" \
+        | jq -r '.packages[] | select(.name=="agave-geyser-plugin-interface") | .version'
+}
+
 step::00::check-environment() {
     log::info "Checking for clean git working tree..."
     pushd "$BUILD_DIR"
     git::repo::is-clean || log::fatal "Working tree must be clean"
+    popd
+    if [ -z "$AGAVE_PATH" ]; then log::fatal "AGAVE_PATH not set; pass --agave-path to svmkit build yellowstone-grpc"; fi
+}
+
+step::05::check-plugin-version() {
+    pushd "$BUILD_DIR"
+    cp -r "$AGAVE_PATH" ./agave
+
+    plugin_ver=$(env_check_plugin_version "yellowstone-grpc-geyser")
+    agave_ver=$(env_check_plugin_version "agave")
+
+    # compare major.minor; allow patch differences
+    p_prefix=$(echo "$plugin_ver" | cut -d. -f1,2)
+    a_prefix=$(echo "$agave_ver"   | cut -d. -f1,2)
+    if [ "$p_prefix" != "$a_prefix" ]; then
+        log::fatal "version mismatch: plugin=$plugin_ver vs agave=$agave_ver (major.minor mismatch)"
+    fi
     popd
 }
 
