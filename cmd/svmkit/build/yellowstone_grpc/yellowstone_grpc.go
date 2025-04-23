@@ -40,6 +40,10 @@ func (cmd *Build) Check() error {
 
 	pkgGrp := deb.Package{}.MakePackageGroup()
 
+	pkgGrp.Add(deb.Package{
+		Name:          "protobuf-compiler",
+	})
+
 	if err := cmd.UpdatePackageGroup(pkgGrp); err != nil {
 		return err
 	}
