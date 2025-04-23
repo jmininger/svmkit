@@ -6,7 +6,6 @@ log::generic() {
     local level
     level=$1
     shift
-
     printf "%s\t%s\n" "$level" "$*"
 }
 
